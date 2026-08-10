@@ -1,14 +1,24 @@
-# Reusable AI Template
 
-A reusable Python project template that I built as the foundation for future AI engineering and machine learning projects.
+# Rental Price Predictor
 
-It provides a clean starting point with testing, linting, logging, configuration, GitHub Actions, and Docker already configured.
+A rental price prediction project that implements linear regression from scratch with NumPy and compares it with scikit-learn models.
 
-## Features
+This repository starts from a reusable AI project template. It includes testing, linting, logging, configuration, GitHub Actions, and Docker as a foundation for the project.
+
+## Planned Features
+
+- Load and explore rental-price data
+- Prepare features for modelling
+- Implement linear regression from scratch with NumPy
+- Compare the NumPy implementation with scikit-learn models
+- Evaluate models using appropriate regression metrics
+- Document findings and limitations
+
+## Development Tools
 
 - 📁 `src` layout
 - 🧪 `pytest`
-- ✨ Ruff (formatting & linting)
+- ✨ Ruff (formatting and linting)
 - 📝 Logging
 - ⚙️ YAML configuration
 - 🤖 GitHub Actions (CI)
@@ -20,7 +30,7 @@ Install:
 
 ```bash
 pip install -e ".[dev]"
-```
+````
 
 Run tests:
 
@@ -28,24 +38,22 @@ Run tests:
 pytest
 ```
 
-Build Docker image:
+Build the Docker image:
 
 ```bash
-docker build -t reusable-ai-template .
+docker build -t rental-price-predictor .
 ```
 
-Run Docker:
+Run the Docker image:
 
 ```bash
-docker run --rm reusable-ai-template
+docker run --rm rental-price-predictor
 ```
 
 ## Learning Notes
 
-I wrote short summary notes covering the main concepts I learned while building this project.
-
-➡️ **AI Notes:** https://github.com/nahom-mersha/ai-notes
+Project learning notes will be added to my [AI Notes repository](https://github.com/nahom-mersha/ai-notes) as the project progresses.
 
 ## Purpose
 
-This repository is **Project 0** of my AI Engineering roadmap and serves as the reusable foundation for future AI projects.
+This repository is **Project 2** of my AI Engineering roadmap. Its purpose is to develop a practical understanding of regression, NumPy-based model implementation, and model evaluation.

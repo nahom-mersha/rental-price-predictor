@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "reusable-ai-template"
+name = "rental-price-predictor"
 version = "0.1.0"
-description = "A reusable Python project template for AI engineering projects"
+description = "A rental price prediction project that implements linear regression from scratch with NumPy and compares it with scikit-learn models."
 requires-python = ">=3.10"
 dependencies = []
 

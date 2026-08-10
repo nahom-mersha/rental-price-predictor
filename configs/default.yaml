@@ -1,5 +1,5 @@
 application:
-  name: reusable-ai-template
+  name: rental-price-predictor
 
 data:
   input_path: data/sample.csv
