@@ -7,7 +7,9 @@ name = "rental-price-predictor"
 version = "0.1.0"
 description = "A rental price prediction project that implements linear regression from scratch with NumPy and compares it with scikit-learn models."
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pandas",
+]
 
 [project.optional-dependencies]
 dev = [
