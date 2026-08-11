@@ -36,15 +36,27 @@ def main():
     y_train = y[train_indices]
     y_test = y[test_indices]
 
-    X_train_design = np.column_stack([np.ones(X_train.shape[0]), X_train])
+    feature_means = X_train.mean(axis=0)
+    feature_stds = X_train.std(axis=0)
 
-    X_test_design = np.column_stack([np.ones(X_test.shape[0]), X_test])
+    X_train_scaled = (X_train - feature_means) / feature_stds
+    X_test_scaled = (X_test - feature_means) / feature_stds
+
+    X_train_design = np.column_stack([np.ones(X_train_scaled.shape[0]), X_train_scaled])
+
+    X_test_design = np.column_stack([np.ones(X_test_scaled.shape[0]), X_test_scaled])
 
     print("Clean rows:", len(model_df))
     print("X_train_design:", X_train_design.shape)
     print("X_test_design:", X_test_design.shape)
     print("y_train:", y_train.shape)
     print("y_test:", y_test.shape)
+    print("Feature means:", feature_means)
+    print("Feature stds:", feature_stds)
+    print("X_train_scaled mean:", X_train_scaled.mean(axis=0))
+    print("X_train_scaled std:", X_train_scaled.std(axis=0))
+    print("X_test_scaled mean:", X_test_scaled.mean(axis=0))
+    print("X_test_scaled std:", X_test_scaled.std(axis=0))
 
 
 if __name__ == "__main__":
