@@ -36,6 +36,20 @@ def main():
     y_train = y[train_indices]
     y_test = y[test_indices]
 
+    baseline_prediction = y_train.mean()
+
+    y_test_baseline_predictions = np.full(
+        shape=y_test.shape,
+        fill_value=baseline_prediction,
+    )
+
+    mae = np.mean(np.abs(y_test_baseline_predictions - y_test))
+
+    rmse = np.sqrt(np.mean((y_test_baseline_predictions - y_test) ** 2))
+
+    print("Baseline prediction:", baseline_prediction)
+    print("Baseline MAE:", mae)
+    print("Baseline RMSE:", rmse)
     feature_means = X_train.mean(axis=0)
     feature_stds = X_train.std(axis=0)
 
