@@ -57,3 +57,24 @@ Project learning notes will be added to my [AI Notes repository](https://github.
 ## Purpose
 
 This repository is **Project 2** of my AI Engineering roadmap. Its purpose is to develop a practical understanding of regression, NumPy-based model implementation, and model evaluation.
+
+## Reproduce the Dataset Setup
+
+This project expects the raw Kaggle dataset to be placed locally at:
+
+data/raw/immo_data.csv
+
+The raw dataset is not committed to Git because it is too large. Download it from the Kaggle dataset page linked in docs/data_source.md.
+
+From the project root, install the project dependencies:
+
+pip install -e .
+
+Then verify that the dataset can be loaded and filtered to Munich city:
+
+python -c "import pandas as pd; df = pd.read_csv('data/raw/immo_data.csv'); munich = df[df['regio2'].eq('München')]; print('Full dataset rows:', len(df)); print('Munich city rows:', len(munich))"
+
+Expected output:
+
+Full dataset rows: 268850
+Munich city rows: 4383
