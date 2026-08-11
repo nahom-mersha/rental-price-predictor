@@ -60,6 +60,18 @@ def main():
 
     X_test_design = np.column_stack([np.ones(X_test_scaled.shape[0]), X_test_scaled])
 
+    weights = np.zeros(X_train_design.shape[1])
+
+    y_train_predictions = X_train_design @ weights
+
+    train_errors = y_train_predictions - y_train
+
+    train_mse = np.mean(train_errors**2)
+
+    print("Initial train MSE:", train_mse)
+    print("Weights:", weights)
+    print("y_train_predictions shape:", y_train_predictions.shape)
+    print("First five predictions:", y_train_predictions[:5])
     print("Clean rows:", len(model_df))
     print("X_train_design:", X_train_design.shape)
     print("X_test_design:", X_test_design.shape)
