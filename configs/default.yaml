@@ -2,7 +2,17 @@ application:
   name: rental-price-predictor
 
 data:
-  input_path: data/sample.csv
+  raw_path: data/raw/immo_data.csv
+  processed_path: data/processed
+  sample_path: data/sample
+
+split:
+  random_seed: 42
+  test_size: 0.2
+
+model:
+  learning_rate: 0.01
+  iterations: 1000
 
 logging:
   level: INFO
