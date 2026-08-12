@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -60,46 +59,68 @@ def main():
     # Add intercept column.
     X_train_design = np.column_stack([np.ones(X_train_scaled.shape[0]), X_train_scaled])
 
-    learning_rates = [0.0001, 0.001, 0.01, 0.1, 0.3]
-    iterations = 5000
+    # Gradient descent solution.
+    weights = np.zeros(X_train_design.shape[1])
 
+    learning_rate = 0.01
+    iterations = 5000
     n = len(y_train)
 
-    all_loss_histories = {}
+    for _ in range(iterations):
+        y_train_predictions = X_train_design @ weights
 
-    for learning_rate in learning_rates:
-        weights = np.zeros(X_train_design.shape[1])
-        loss_history = []
+        train_errors = y_train_predictions - y_train
 
-        for _ in range(iterations):
-            y_train_predictions = X_train_design @ weights
+        gradient = (2 / n) * (X_train_design.T @ train_errors)
 
-            train_errors = y_train_predictions - y_train
+        weights = weights - learning_rate * gradient
 
-            train_mse = np.mean(train_errors**2)
+    gradient_descent_predictions = X_train_design @ weights
 
-            gradient = (2 / n) * (X_train_design.T @ train_errors)
+    gradient_descent_errors = gradient_descent_predictions - y_train
 
-            weights = weights - learning_rate * gradient
+    gradient_descent_mse = np.mean(gradient_descent_errors**2)
 
-            loss_history.append(train_mse)
+    # Normal equation solution.
+    normal_weights = (
+        np.linalg.inv(X_train_design.T @ X_train_design) @ X_train_design.T @ y_train
+    )
 
-        all_loss_histories[learning_rate] = loss_history
+    normal_predictions = X_train_design @ normal_weights
 
-        print(f"Learning rate {learning_rate}: final MSE = {loss_history[-1]}")
+    normal_errors = normal_predictions - y_train
 
-    for learning_rate, loss_history in all_loss_histories.items():
-        plt.plot(
-            range(iterations),
-            loss_history,
-            label=f"lr={learning_rate}",
-        )
+    normal_mse = np.mean(normal_errors**2)
 
-    plt.xlabel("Iteration")
-    plt.ylabel("Training MSE")
-    plt.title("Learning Rate Comparison")
-    plt.legend()
-    plt.show()
+    print("\nGradient descent weights:", weights)
+    print("Gradient descent train MSE:", gradient_descent_mse)
+
+    print("\nNormal equation weights:", normal_weights)
+    print("Normal equation train MSE:", normal_mse)
+
+    # Pseudoinverse solution.
+    pinv_weights = np.linalg.pinv(X_train_design) @ y_train
+
+    pinv_predictions = X_train_design @ pinv_weights
+    pinv_errors = pinv_predictions - y_train
+    pinv_mse = np.mean(pinv_errors**2)
+
+    # Least-squares solution.
+    lstsq_weights = np.linalg.lstsq(
+        X_train_design,
+        y_train,
+        rcond=None,
+    )[0]
+
+    lstsq_predictions = X_train_design @ lstsq_weights
+    lstsq_errors = lstsq_predictions - y_train
+    lstsq_mse = np.mean(lstsq_errors**2)
+
+    print("\nPseudoinverse weights:", pinv_weights)
+    print("Pseudoinverse train MSE:", pinv_mse)
+
+    print("\nLeast-squares weights:", lstsq_weights)
+    print("Least-squares train MSE:", lstsq_mse)
 
 
 if __name__ == "__main__":
