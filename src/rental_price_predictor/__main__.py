@@ -66,32 +66,30 @@ def main():
     # Start linear regression with all weights at zero.
     weights = np.zeros(X_train_design.shape[1])
 
-    # Initial prediction and loss.
-    y_train_predictions = X_train_design @ weights
-    train_errors = y_train_predictions - y_train
-    initial_train_mse = np.mean(train_errors**2)
+    learning_rate = 0.01
+    iterations = 5000
 
-    # Compute vectorized gradient.
+    loss_history = []
+
     n = len(y_train)
 
-    gradient = (2 / n) * (X_train_design.T @ train_errors)
+    for iteration in range(iterations):
+        y_train_predictions = X_train_design @ weights
 
-    print("Initial weights:", weights)
-    print("Initial gradient:", gradient)
-    print("Initial train MSE:", initial_train_mse)
+        train_errors = y_train_predictions - y_train
 
-    # Perform one gradient-descent update.
-    learning_rate = 0.001
+        train_mse = np.mean(train_errors**2)
 
-    weights = weights - learning_rate * gradient
+        gradient = (2 / n) * (X_train_design.T @ train_errors)
 
-    # Recalculate predictions and loss using the updated weights.
-    y_train_predictions = X_train_design @ weights
-    train_errors = y_train_predictions - y_train
-    updated_train_mse = np.mean(train_errors**2)
+        weights = weights - learning_rate * gradient
 
-    print("Updated weights:", weights)
-    print("Train MSE after one update:", updated_train_mse)
+        loss_history.append(train_mse)
+    print("Final weights:", weights)
+    print("Initial train MSE:", loss_history[0])
+    print("Final train MSE:", loss_history[-1])
+    print("MSE after 10 iterations:", loss_history[9])
+    print("MSE after 100 iterations:", loss_history[99])
 
 
 if __name__ == "__main__":
