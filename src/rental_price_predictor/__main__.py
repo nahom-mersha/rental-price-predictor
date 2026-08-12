@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -31,7 +32,6 @@ def main():
     test_indices = indices[split_index:]
 
     X_train = X[train_indices]
-    # X_test = X[test_indices]
 
     y_train = y[train_indices]
     y_test = y[test_indices]
@@ -56,40 +56,50 @@ def main():
     feature_stds = X_train.std(axis=0)
 
     X_train_scaled = (X_train - feature_means) / feature_stds
-    # X_test_scaled = (X_test - feature_means) / feature_stds
 
     # Add intercept column.
     X_train_design = np.column_stack([np.ones(X_train_scaled.shape[0]), X_train_scaled])
 
-    # X_test_design = np.column_stack([np.ones(X_test_scaled.shape[0]), X_test_scaled])
-
-    # Start linear regression with all weights at zero.
-    weights = np.zeros(X_train_design.shape[1])
-
-    learning_rate = 0.01
+    learning_rates = [0.0001, 0.001, 0.01, 0.1, 0.3]
     iterations = 5000
-
-    loss_history = []
 
     n = len(y_train)
 
-    for iteration in range(iterations):
-        y_train_predictions = X_train_design @ weights
+    all_loss_histories = {}
 
-        train_errors = y_train_predictions - y_train
+    for learning_rate in learning_rates:
+        weights = np.zeros(X_train_design.shape[1])
+        loss_history = []
 
-        train_mse = np.mean(train_errors**2)
+        for _ in range(iterations):
+            y_train_predictions = X_train_design @ weights
 
-        gradient = (2 / n) * (X_train_design.T @ train_errors)
+            train_errors = y_train_predictions - y_train
 
-        weights = weights - learning_rate * gradient
+            train_mse = np.mean(train_errors**2)
 
-        loss_history.append(train_mse)
-    print("Final weights:", weights)
-    print("Initial train MSE:", loss_history[0])
-    print("Final train MSE:", loss_history[-1])
-    print("MSE after 10 iterations:", loss_history[9])
-    print("MSE after 100 iterations:", loss_history[99])
+            gradient = (2 / n) * (X_train_design.T @ train_errors)
+
+            weights = weights - learning_rate * gradient
+
+            loss_history.append(train_mse)
+
+        all_loss_histories[learning_rate] = loss_history
+
+        print(f"Learning rate {learning_rate}: final MSE = {loss_history[-1]}")
+
+    for learning_rate, loss_history in all_loss_histories.items():
+        plt.plot(
+            range(iterations),
+            loss_history,
+            label=f"lr={learning_rate}",
+        )
+
+    plt.xlabel("Iteration")
+    plt.ylabel("Training MSE")
+    plt.title("Learning Rate Comparison")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":

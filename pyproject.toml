@@ -9,6 +9,7 @@ description = "A rental price prediction project that implements linear regressi
 requires-python = ">=3.10"
 dependencies = [
     "pandas",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
