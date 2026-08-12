@@ -121,6 +121,7 @@ def main():
 
     print("\nLeast-squares weights:", lstsq_weights)
     print("Least-squares train MSE:", lstsq_mse)
+    print("---------------DONE-------------------")
 
 
 if __name__ == "__main__":
