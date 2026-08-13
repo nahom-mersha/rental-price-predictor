@@ -140,17 +140,18 @@ def main():
     for alpha, mean_mae in ridge_results:
         print(f"alpha={alpha}: mean CV MAE = {mean_mae}")
 
-    depth_values = [2, 3, 5, 10, 20, None]
-    tree_results = []
+    leaf_values = [1, 2, 5, 10, 20, 50]
+    tree_leaf_results = []
 
-    for max_depth in depth_values:
+    for min_samples_leaf in leaf_values:
         tree_pipeline = Pipeline(
             steps=[
                 ("preprocessing", preprocessor),
                 (
                     "model",
                     DecisionTreeRegressor(
-                        max_depth=max_depth,
+                        max_depth=10,
+                        min_samples_leaf=min_samples_leaf,
                         random_state=42,
                     ),
                 ),
@@ -168,12 +169,12 @@ def main():
         tree_mae_scores = -tree_cv_scores
         mean_tree_mae = tree_mae_scores.mean()
 
-        tree_results.append((max_depth, mean_tree_mae))
+        tree_leaf_results.append((min_samples_leaf, mean_tree_mae))
 
-    print("\nDecision Tree max_depth experiment")
+    print("\nDecision Tree min_samples_leaf experiment")
 
-    for max_depth, mean_mae in tree_results:
-        print(f"max_depth={max_depth}: mean CV MAE = {mean_mae}")
+    for min_samples_leaf, mean_mae in tree_leaf_results:
+        print(f"min_samples_leaf={min_samples_leaf}: mean CV MAE = {mean_mae}")
 
 
 if __name__ == "__main__":
