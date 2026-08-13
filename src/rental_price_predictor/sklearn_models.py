@@ -140,27 +140,40 @@ def main():
     for alpha, mean_mae in ridge_results:
         print(f"alpha={alpha}: mean CV MAE = {mean_mae}")
 
-    # Default Decision Tree Regression.
-    tree_pipeline = Pipeline(
-        steps=[
-            ("preprocessing", preprocessor),
-            ("model", DecisionTreeRegressor(random_state=42)),
-        ]
-    )
+    depth_values = [2, 3, 5, 10, 20, None]
+    tree_results = []
 
-    tree_cv_scores = cross_val_score(
-        tree_pipeline,
-        X_train,
-        y_train,
-        cv=5,
-        scoring="neg_mean_absolute_error",
-    )
+    for max_depth in depth_values:
+        tree_pipeline = Pipeline(
+            steps=[
+                ("preprocessing", preprocessor),
+                (
+                    "model",
+                    DecisionTreeRegressor(
+                        max_depth=max_depth,
+                        random_state=42,
+                    ),
+                ),
+            ]
+        )
 
-    tree_mae_scores = -tree_cv_scores
+        tree_cv_scores = cross_val_score(
+            tree_pipeline,
+            X_train,
+            y_train,
+            cv=5,
+            scoring="neg_mean_absolute_error",
+        )
 
-    print("\nDecision Tree Regression")
-    print("CV MAE scores:", tree_mae_scores)
-    print("Mean CV MAE:", tree_mae_scores.mean())
+        tree_mae_scores = -tree_cv_scores
+        mean_tree_mae = tree_mae_scores.mean()
+
+        tree_results.append((max_depth, mean_tree_mae))
+
+    print("\nDecision Tree max_depth experiment")
+
+    for max_depth, mean_mae in tree_results:
+        print(f"max_depth={max_depth}: mean CV MAE = {mean_mae}")
 
 
 if __name__ == "__main__":
