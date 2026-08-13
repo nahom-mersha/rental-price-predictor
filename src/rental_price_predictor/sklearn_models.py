@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -68,7 +69,6 @@ def load_and_split_data():
 
 def build_preprocessor():
     """Create leakage-safe preprocessing for numerical and categorical data."""
-
     numerical_pipeline = Pipeline(
         steps=[
             (
@@ -118,15 +118,17 @@ def build_preprocessor():
 
 
 def build_model_pipeline(model):
-    """
-    Combine preprocessing and a regression model.
-
-    Every model goes through the same preprocessing workflow.
-    """
+    """Combine preprocessing and a regression model."""
     return Pipeline(
         steps=[
-            ("preprocessing", build_preprocessor()),
-            ("model", model),
+            (
+                "preprocessing",
+                build_preprocessor(),
+            ),
+            (
+                "model",
+                model,
+            ),
         ]
     )
 
@@ -136,7 +138,11 @@ def build_model_pipeline(model):
 # ---------------------------------------------------------------------------
 
 
-def cross_validated_mae(model, X_train, y_train):
+def cross_validated_mae(
+    model,
+    X_train,
+    y_train,
+):
     """Evaluate a model using leakage-safe cross-validation."""
     pipeline = build_model_pipeline(model)
 
@@ -148,18 +154,21 @@ def cross_validated_mae(model, X_train, y_train):
         scoring=CV_SCORING,
     )
 
-    # scikit-learn returns negative MAE because larger scores are
-    # considered better. Convert them back to normal positive MAE values.
+    # scikit-learn returns negative MAE because larger scores are treated
+    # as better. Convert the values back to normal positive MAE.
     return -negative_mae_scores
 
 
 # ---------------------------------------------------------------------------
-# Model experiments
+# Model selection
 # ---------------------------------------------------------------------------
 
 
-def evaluate_linear_regression(X_train, y_train):
-    """Evaluate ordinary linear regression."""
+def evaluate_linear_regression(
+    X_train,
+    y_train,
+):
+    """Evaluate ordinary Linear Regression using cross-validation."""
     mae_scores = cross_validated_mae(
         LinearRegression(),
         X_train,
@@ -167,12 +176,14 @@ def evaluate_linear_regression(X_train, y_train):
     )
 
     print("\nLinear Regression")
-    print("CV MAE scores:", mae_scores)
-    print("Mean CV MAE:", mae_scores.mean())
+    print(f"Mean CV MAE: {mae_scores.mean():.2f}")
 
 
-def evaluate_ridge_regression(X_train, y_train):
-    """Compare several Ridge regularization strengths."""
+def evaluate_ridge_regression(
+    X_train,
+    y_train,
+):
+    """Compare Ridge regularization strengths using cross-validation."""
     alpha_values = [
         0.01,
         0.1,
@@ -181,7 +192,7 @@ def evaluate_ridge_regression(X_train, y_train):
         100.0,
     ]
 
-    ridge_results = []
+    print("\nRidge Regression")
 
     for alpha in alpha_values:
         mae_scores = cross_validated_mae(
@@ -190,67 +201,14 @@ def evaluate_ridge_regression(X_train, y_train):
             y_train,
         )
 
-        ridge_results.append((alpha, mae_scores.mean()))
-
-    print("\nRidge Regression")
-
-    for alpha, mean_mae in ridge_results:
-        print(f"alpha={alpha}: mean CV MAE = {mean_mae}")
+        print(f"alpha={alpha}: mean CV MAE = {mae_scores.mean():.2f}")
 
 
-def run_tree_split_experiment(X_train, y_train):
-    """
-    Learning experiment:
-
-    Keep depth and leaf size fixed while changing min_samples_split.
-
-    This demonstrates how one tree hyperparameter affects
-    cross-validation performance.
-    """
-    split_values = [
-        2,
-        5,
-        10,
-        20,
-        50,
-    ]
-
-    tree_results = []
-
-    for min_samples_split in split_values:
-        model = DecisionTreeRegressor(
-            max_depth=10,
-            min_samples_leaf=10,
-            min_samples_split=min_samples_split,
-            random_state=RANDOM_STATE,
-        )
-
-        mae_scores = cross_validated_mae(
-            model,
-            X_train,
-            y_train,
-        )
-
-        tree_results.append(
-            (
-                min_samples_split,
-                mae_scores.mean(),
-            )
-        )
-
-    print("\nDecision Tree min_samples_split experiment")
-
-    for min_samples_split, mean_mae in tree_results:
-        print(f"min_samples_split={min_samples_split}: mean CV MAE = {mean_mae}")
-
-
-def run_tree_grid_search(X_train, y_train):
-    """
-    Search combinations of Decision Tree hyperparameters using 5-fold CV.
-
-    Unlike the manual experiment above, GridSearchCV tests combinations
-    of hyperparameters instead of changing only one at a time.
-    """
+def run_tree_grid_search(
+    X_train,
+    y_train,
+):
+    """Tune Decision Tree hyperparameters using GridSearchCV."""
     tree_pipeline = build_model_pipeline(
         DecisionTreeRegressor(random_state=RANDOM_STATE)
     )
@@ -291,12 +249,93 @@ def run_tree_grid_search(X_train, y_train):
         "Best parameters:",
         grid_search.best_params_,
     )
-    print(
-        "Best mean CV MAE:",
-        -grid_search.best_score_,
-    )
+    print(f"Best mean CV MAE: {-grid_search.best_score_:.2f}")
 
     return grid_search
+
+
+# ---------------------------------------------------------------------------
+# Final test evaluation
+# ---------------------------------------------------------------------------
+
+
+def evaluate_on_test_set(
+    name,
+    model,
+    X_train,
+    X_test,
+    y_train,
+    y_test,
+):
+    """Fit a selected model and evaluate it on the held-out test set."""
+    pipeline = build_model_pipeline(model)
+
+    pipeline.fit(
+        X_train,
+        y_train,
+    )
+
+    predictions = pipeline.predict(X_test)
+
+    mae = mean_absolute_error(
+        y_test,
+        predictions,
+    )
+
+    rmse = (
+        mean_squared_error(
+            y_test,
+            predictions,
+        )
+        ** 0.5
+    )
+
+    r2 = r2_score(
+        y_test,
+        predictions,
+    )
+
+    print(f"\n{name} — Final Test")
+    print(f"MAE: {mae:.2f}")
+    print(f"RMSE: {rmse:.2f}")
+    print(f"R²: {r2:.3f}")
+
+
+def evaluate_tree_on_test_set(
+    tree_grid_search,
+    X_test,
+    y_test,
+):
+    """
+    Evaluate the best Decision Tree selected by GridSearchCV.
+
+    GridSearchCV refits the best model on the full training set by default,
+    so another fit is not needed here.
+    """
+    predictions = tree_grid_search.predict(X_test)
+
+    mae = mean_absolute_error(
+        y_test,
+        predictions,
+    )
+
+    rmse = (
+        mean_squared_error(
+            y_test,
+            predictions,
+        )
+        ** 0.5
+    )
+
+    r2 = r2_score(
+        y_test,
+        predictions,
+    )
+
+    print("\nDecision Tree — Final Test")
+    print(f"MAE: {mae:.2f}")
+    print(f"RMSE: {rmse:.2f}")
+    print(f"R²: {r2:.3f}")
 
 
 # ---------------------------------------------------------------------------
@@ -310,10 +349,42 @@ def main():
     print("Dataset split")
     print(f"Training samples: {len(X_train)}")
     print(f"Test samples: {len(X_test)}")
-    print(f"Training targets: {len(y_train)}")
-    print(f"Test targets: {len(y_test)}")
 
-    # Compare professional regression models using only the training set.
+    # -----------------------------------------------------------------------
+    # Mean baseline
+    # -----------------------------------------------------------------------
+
+    baseline_prediction = y_train.mean()
+
+    baseline_predictions = [baseline_prediction] * len(y_test)
+
+    baseline_mae = mean_absolute_error(
+        y_test,
+        baseline_predictions,
+    )
+
+    baseline_rmse = (
+        mean_squared_error(
+            y_test,
+            baseline_predictions,
+        )
+        ** 0.5
+    )
+
+    baseline_r2 = r2_score(
+        y_test,
+        baseline_predictions,
+    )
+
+    print("\nMean Baseline")
+    print(f"MAE: {baseline_mae:.2f}")
+    print(f"RMSE: {baseline_rmse:.2f}")
+    print(f"R²: {baseline_r2:.3f}")
+
+    # -----------------------------------------------------------------------
+    # Model selection using training data only
+    # -----------------------------------------------------------------------
+
     evaluate_linear_regression(
         X_train,
         y_train,
@@ -324,16 +395,37 @@ def main():
         y_train,
     )
 
-    # Keep this manual experiment because it documents the learning process.
-    run_tree_split_experiment(
+    tree_grid_search = run_tree_grid_search(
         X_train,
         y_train,
     )
 
-    # Systematically search combinations of tree hyperparameters.
-    run_tree_grid_search(
+    # -----------------------------------------------------------------------
+    # Final evaluation on the held-out test set
+    # -----------------------------------------------------------------------
+
+    evaluate_on_test_set(
+        "Linear Regression",
+        LinearRegression(),
         X_train,
+        X_test,
         y_train,
+        y_test,
+    )
+
+    evaluate_on_test_set(
+        "Ridge Regression",
+        Ridge(alpha=10.0),
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+    )
+
+    evaluate_tree_on_test_set(
+        tree_grid_search,
+        X_test,
+        y_test,
     )
 
 
