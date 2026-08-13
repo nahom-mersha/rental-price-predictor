@@ -104,21 +104,36 @@ def main():
         scoring="neg_mean_absolute_error",
     )
 
-    ridge_cv_scores = cross_val_score(
-        ridge_pipeline,
-        X_train,
-        y_train,
-        cv=5,
-        scoring="neg_mean_absolute_error",
-    )
-
     linear_mae_scores = -linear_cv_scores
-    ridge_mae_scores = -ridge_cv_scores
     print("Linear Regression CV MAE scores:", linear_mae_scores)
     print("Linear Regression mean CV MAE:", linear_mae_scores.mean())
 
-    print("Ridge CV MAE scores:", ridge_mae_scores)
-    print("Ridge mean CV MAE:", ridge_mae_scores.mean())
+    alpha_values = [0.01, 0.1, 1.0, 10.0, 100.0]
+    ridge_results = []
+
+    for alpha in alpha_values:
+        ridge_pipeline = Pipeline(
+            steps=[
+                ("preprocessing", preprocessor),
+                ("model", Ridge(alpha=alpha)),
+            ]
+        )
+
+        ridge_cv_scores = cross_val_score(
+            ridge_pipeline,
+            X_train,
+            y_train,
+            cv=5,
+            scoring="neg_mean_absolute_error",
+        )
+
+        ridge_mae_scores = -ridge_cv_scores
+        mean_ridge_mae = ridge_mae_scores.mean()
+
+        ridge_results.append((alpha, mean_ridge_mae))
+
+    for alpha, mean_mae in ridge_results:
+        print(f"Ridge alpha={alpha}: mean CV MAE = {mean_mae}")
 
 
 if __name__ == "__main__":
