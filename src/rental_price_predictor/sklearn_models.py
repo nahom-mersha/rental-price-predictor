@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeRegressor
@@ -176,6 +176,31 @@ def main():
 
     for min_samples_split, mean_mae in tree_split_results:
         print(f"min_samples_split={min_samples_split}: mean CV MAE = {mean_mae}")
+
+    tree_grid_pipeline = Pipeline(
+        steps=[
+            ("preprocessing", preprocessor),
+            ("model", DecisionTreeRegressor(random_state=42)),
+        ]
+    )
+    tree_param_grid = {
+        "model__max_depth": [5, 10, 15, None],
+        "model__min_samples_leaf": [5, 10, 20],
+        "model__min_samples_split": [2, 20, 50],
+    }
+
+    tree_grid_search = GridSearchCV(
+        estimator=tree_grid_pipeline,
+        param_grid=tree_param_grid,
+        cv=5,
+        scoring="neg_mean_absolute_error",
+    )
+
+    tree_grid_search.fit(X_train, y_train)
+
+    print("\nDecision Tree GridSearchCV")
+    print("Best parameters:", tree_grid_search.best_params_)
+    print("Best mean CV MAE:", -tree_grid_search.best_score_)
 
 
 if __name__ == "__main__":
