@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -90,13 +90,18 @@ def main():
         random_state=42,
     )
 
-    # Temporary checkpoint output so the intermediate learning step
-    # remains Ruff-clean before model training is added.
-    print("X train shape:", X_train.shape)
-    print("X test shape:", X_test.shape)
-    print("y train shape:", y_train.shape)
-    print("y test shape:", y_test.shape)
-    print(model_pipeline)
+    cv_scores = cross_val_score(
+        model_pipeline,
+        X_train,
+        y_train,
+        cv=5,
+        scoring="neg_mean_absolute_error",
+    )
+
+    mae_scores = -cv_scores
+
+    print("CV MAE scores:", mae_scores)
+    print("Mean CV MAE:", mae_scores.mean())
 
 
 if __name__ == "__main__":
