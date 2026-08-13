@@ -5,6 +5,7 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.tree import DecisionTreeRegressor
 
 
 def main():
@@ -29,16 +30,6 @@ def main():
         (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
     ].copy()
 
-    X = model_df[
-        [
-            "livingSpace",
-            "noRooms",
-            "typeOfFlat",
-            "regio3",
-        ]
-    ]
-    y = model_df["baseRent"]
-
     numerical_features = [
         "livingSpace",
         "noRooms",
@@ -49,6 +40,23 @@ def main():
         "regio3",
     ]
 
+    X = model_df[numerical_features + categorical_features]
+    y = model_df["baseRent"]
+
+    # Reserve the test set for final evaluation.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+    )
+
+    print(f"Training samples: {len(X_train)}")
+    print(f"Test samples: {len(X_test)}")
+    print(f"Training targets: {len(y_train)}")
+    print(f"Test targets: {len(y_test)}")
+
+    # Numerical preprocessing: fill missing values, then standardize.
     numerical_pipeline = Pipeline(
         steps=[
             ("imputation", SimpleImputer(strategy="median")),
@@ -56,6 +64,7 @@ def main():
         ]
     )
 
+    # Categorical preprocessing: fill missing values, then one-hot encode.
     categorical_pipeline = Pipeline(
         steps=[
             (
@@ -64,7 +73,10 @@ def main():
             ),
             (
                 "one_hot_encoding",
-                OneHotEncoder(drop="first", handle_unknown="ignore"),
+                OneHotEncoder(
+                    drop="first",
+                    handle_unknown="ignore",
+                ),
             ),
         ]
     )
@@ -76,28 +88,16 @@ def main():
         ]
     )
 
-    linear_model_pipeline = Pipeline(
+    # Linear Regression.
+    linear_pipeline = Pipeline(
         steps=[
             ("preprocessing", preprocessor),
             ("model", LinearRegression()),
         ]
     )
-    ridge_pipeline = Pipeline(
-        steps=[
-            ("preprocessing", preprocessor),
-            ("model", Ridge(alpha=1.0)),
-        ]
-    )
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-    )
 
     linear_cv_scores = cross_val_score(
-        linear_model_pipeline,
+        linear_pipeline,
         X_train,
         y_train,
         cv=5,
@@ -105,9 +105,12 @@ def main():
     )
 
     linear_mae_scores = -linear_cv_scores
-    print("Linear Regression CV MAE scores:", linear_mae_scores)
-    print("Linear Regression mean CV MAE:", linear_mae_scores.mean())
 
+    print("\nLinear Regression")
+    print("CV MAE scores:", linear_mae_scores)
+    print("Mean CV MAE:", linear_mae_scores.mean())
+
+    # Ridge Regression: compare several regularization strengths.
     alpha_values = [0.01, 0.1, 1.0, 10.0, 100.0]
     ridge_results = []
 
@@ -132,8 +135,32 @@ def main():
 
         ridge_results.append((alpha, mean_ridge_mae))
 
+    print("\nRidge Regression")
+
     for alpha, mean_mae in ridge_results:
-        print(f"Ridge alpha={alpha}: mean CV MAE = {mean_mae}")
+        print(f"alpha={alpha}: mean CV MAE = {mean_mae}")
+
+    # Default Decision Tree Regression.
+    tree_pipeline = Pipeline(
+        steps=[
+            ("preprocessing", preprocessor),
+            ("model", DecisionTreeRegressor(random_state=42)),
+        ]
+    )
+
+    tree_cv_scores = cross_val_score(
+        tree_pipeline,
+        X_train,
+        y_train,
+        cv=5,
+        scoring="neg_mean_absolute_error",
+    )
+
+    tree_mae_scores = -tree_cv_scores
+
+    print("\nDecision Tree Regression")
+    print("CV MAE scores:", tree_mae_scores)
+    print("Mean CV MAE:", tree_mae_scores.mean())
 
 
 if __name__ == "__main__":
