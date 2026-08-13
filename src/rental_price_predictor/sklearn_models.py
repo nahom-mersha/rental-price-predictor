@@ -7,69 +7,89 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 
+# ---------------------------------------------------------------------------
+# Experiment configuration
+# ---------------------------------------------------------------------------
 
-def main():
+RANDOM_STATE = 42
+TEST_SIZE = 0.2
+CV_FOLDS = 5
+CV_SCORING = "neg_mean_absolute_error"
+
+NUMERICAL_FEATURES = [
+    "livingSpace",
+    "noRooms",
+]
+
+CATEGORICAL_FEATURES = [
+    "typeOfFlat",
+    "regio3",
+]
+
+TARGET = "baseRent"
+
+
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+
+
+def load_and_split_data():
+    """Load Munich rental data, clean it, and create train/test sets."""
     raw_df = pd.read_csv("data/raw/immo_data.csv")
 
     # Keep Munich city listings only.
-    df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
+    munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 
-    # Keep the selected features and target.
-    model_df = df[
-        [
-            "livingSpace",
-            "noRooms",
-            "typeOfFlat",
-            "regio3",
-            "baseRent",
-        ]
-    ].copy()
+    # Keep only the features and target used by the professional models.
+    model_df = munich_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES + [TARGET]].copy()
 
     # Remove obvious data-quality problems.
     model_df = model_df.loc[
         (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
     ].copy()
 
-    numerical_features = [
-        "livingSpace",
-        "noRooms",
-    ]
+    X = model_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES]
 
-    categorical_features = [
-        "typeOfFlat",
-        "regio3",
-    ]
+    y = model_df[TARGET]
 
-    X = model_df[numerical_features + categorical_features]
-    y = model_df["baseRent"]
-
-    # Reserve the test set for final evaluation.
-    X_train, X_test, y_train, y_test = train_test_split(
+    return train_test_split(
         X,
         y,
-        test_size=0.2,
-        random_state=42,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
     )
 
-    print(f"Training samples: {len(X_train)}")
-    print(f"Test samples: {len(X_test)}")
-    print(f"Training targets: {len(y_train)}")
-    print(f"Test targets: {len(y_test)}")
 
-    # Numerical preprocessing: fill missing values, then standardize.
+# ---------------------------------------------------------------------------
+# Preprocessing
+# ---------------------------------------------------------------------------
+
+
+def build_preprocessor():
+    """Create leakage-safe preprocessing for numerical and categorical data."""
+
     numerical_pipeline = Pipeline(
         steps=[
-            ("imputation", SimpleImputer(strategy="median")),
-            ("scaling", StandardScaler()),
+            (
+                "imputation",
+                SimpleImputer(strategy="median"),
+            ),
+            (
+                "scaling",
+                StandardScaler(),
+            ),
         ]
     )
 
-    # Categorical preprocessing: fill missing values, then one-hot encode.
     categorical_pipeline = Pipeline(
         steps=[
             (
                 "imputation",
-                SimpleImputer(strategy="constant", fill_value="missing"),
+                SimpleImputer(
+                    strategy="constant",
+                    fill_value="missing",
+                ),
             ),
             (
                 "one_hot_encoding",
@@ -81,126 +101,240 @@ def main():
         ]
     )
 
-    preprocessor = ColumnTransformer(
+    return ColumnTransformer(
         transformers=[
-            ("numerical", numerical_pipeline, numerical_features),
-            ("categorical", categorical_pipeline, categorical_features),
+            (
+                "numerical",
+                numerical_pipeline,
+                NUMERICAL_FEATURES,
+            ),
+            (
+                "categorical",
+                categorical_pipeline,
+                CATEGORICAL_FEATURES,
+            ),
         ]
     )
 
-    # Linear Regression.
-    linear_pipeline = Pipeline(
+
+def build_model_pipeline(model):
+    """
+    Combine preprocessing and a regression model.
+
+    Every model goes through the same preprocessing workflow.
+    """
+    return Pipeline(
         steps=[
-            ("preprocessing", preprocessor),
-            ("model", LinearRegression()),
+            ("preprocessing", build_preprocessor()),
+            ("model", model),
         ]
     )
 
-    linear_cv_scores = cross_val_score(
-        linear_pipeline,
+
+# ---------------------------------------------------------------------------
+# Cross-validation
+# ---------------------------------------------------------------------------
+
+
+def cross_validated_mae(model, X_train, y_train):
+    """Evaluate a model using leakage-safe cross-validation."""
+    pipeline = build_model_pipeline(model)
+
+    negative_mae_scores = cross_val_score(
+        pipeline,
         X_train,
         y_train,
-        cv=5,
-        scoring="neg_mean_absolute_error",
+        cv=CV_FOLDS,
+        scoring=CV_SCORING,
     )
 
-    linear_mae_scores = -linear_cv_scores
+    # scikit-learn returns negative MAE because larger scores are
+    # considered better. Convert them back to normal positive MAE values.
+    return -negative_mae_scores
+
+
+# ---------------------------------------------------------------------------
+# Model experiments
+# ---------------------------------------------------------------------------
+
+
+def evaluate_linear_regression(X_train, y_train):
+    """Evaluate ordinary linear regression."""
+    mae_scores = cross_validated_mae(
+        LinearRegression(),
+        X_train,
+        y_train,
+    )
 
     print("\nLinear Regression")
-    print("CV MAE scores:", linear_mae_scores)
-    print("Mean CV MAE:", linear_mae_scores.mean())
+    print("CV MAE scores:", mae_scores)
+    print("Mean CV MAE:", mae_scores.mean())
 
-    # Ridge Regression: compare several regularization strengths.
-    alpha_values = [0.01, 0.1, 1.0, 10.0, 100.0]
+
+def evaluate_ridge_regression(X_train, y_train):
+    """Compare several Ridge regularization strengths."""
+    alpha_values = [
+        0.01,
+        0.1,
+        1.0,
+        10.0,
+        100.0,
+    ]
+
     ridge_results = []
 
     for alpha in alpha_values:
-        ridge_pipeline = Pipeline(
-            steps=[
-                ("preprocessing", preprocessor),
-                ("model", Ridge(alpha=alpha)),
-            ]
-        )
-
-        ridge_cv_scores = cross_val_score(
-            ridge_pipeline,
+        mae_scores = cross_validated_mae(
+            Ridge(alpha=alpha),
             X_train,
             y_train,
-            cv=5,
-            scoring="neg_mean_absolute_error",
         )
 
-        ridge_mae_scores = -ridge_cv_scores
-        mean_ridge_mae = ridge_mae_scores.mean()
-
-        ridge_results.append((alpha, mean_ridge_mae))
+        ridge_results.append((alpha, mae_scores.mean()))
 
     print("\nRidge Regression")
 
     for alpha, mean_mae in ridge_results:
         print(f"alpha={alpha}: mean CV MAE = {mean_mae}")
 
-    split_values = [2, 5, 10, 20, 50]
-    tree_split_results = []
+
+def run_tree_split_experiment(X_train, y_train):
+    """
+    Learning experiment:
+
+    Keep depth and leaf size fixed while changing min_samples_split.
+
+    This demonstrates how one tree hyperparameter affects
+    cross-validation performance.
+    """
+    split_values = [
+        2,
+        5,
+        10,
+        20,
+        50,
+    ]
+
+    tree_results = []
 
     for min_samples_split in split_values:
-        tree_pipeline = Pipeline(
-            steps=[
-                ("preprocessing", preprocessor),
-                (
-                    "model",
-                    DecisionTreeRegressor(
-                        max_depth=10,
-                        min_samples_leaf=10,
-                        min_samples_split=min_samples_split,
-                        random_state=42,
-                    ),
-                ),
-            ]
+        model = DecisionTreeRegressor(
+            max_depth=10,
+            min_samples_leaf=10,
+            min_samples_split=min_samples_split,
+            random_state=RANDOM_STATE,
         )
 
-        tree_cv_scores = cross_val_score(
-            tree_pipeline,
+        mae_scores = cross_validated_mae(
+            model,
             X_train,
             y_train,
-            cv=5,
-            scoring="neg_mean_absolute_error",
         )
 
-        tree_mae_scores = -tree_cv_scores
-        mean_tree_mae = tree_mae_scores.mean()
-
-        tree_split_results.append((min_samples_split, mean_tree_mae))
+        tree_results.append(
+            (
+                min_samples_split,
+                mae_scores.mean(),
+            )
+        )
 
     print("\nDecision Tree min_samples_split experiment")
 
-    for min_samples_split, mean_mae in tree_split_results:
+    for min_samples_split, mean_mae in tree_results:
         print(f"min_samples_split={min_samples_split}: mean CV MAE = {mean_mae}")
 
-    tree_grid_pipeline = Pipeline(
-        steps=[
-            ("preprocessing", preprocessor),
-            ("model", DecisionTreeRegressor(random_state=42)),
-        ]
+
+def run_tree_grid_search(X_train, y_train):
+    """
+    Search combinations of Decision Tree hyperparameters using 5-fold CV.
+
+    Unlike the manual experiment above, GridSearchCV tests combinations
+    of hyperparameters instead of changing only one at a time.
+    """
+    tree_pipeline = build_model_pipeline(
+        DecisionTreeRegressor(random_state=RANDOM_STATE)
     )
-    tree_param_grid = {
-        "model__max_depth": [5, 10, 15, None],
-        "model__min_samples_leaf": [5, 10, 20],
-        "model__min_samples_split": [2, 20, 50],
+
+    parameter_grid = {
+        "model__max_depth": [
+            5,
+            10,
+            15,
+            None,
+        ],
+        "model__min_samples_leaf": [
+            5,
+            10,
+            20,
+        ],
+        "model__min_samples_split": [
+            2,
+            20,
+            50,
+        ],
     }
 
-    tree_grid_search = GridSearchCV(
-        estimator=tree_grid_pipeline,
-        param_grid=tree_param_grid,
-        cv=5,
-        scoring="neg_mean_absolute_error",
+    grid_search = GridSearchCV(
+        estimator=tree_pipeline,
+        param_grid=parameter_grid,
+        cv=CV_FOLDS,
+        scoring=CV_SCORING,
     )
 
-    tree_grid_search.fit(X_train, y_train)
+    grid_search.fit(
+        X_train,
+        y_train,
+    )
 
     print("\nDecision Tree GridSearchCV")
-    print("Best parameters:", tree_grid_search.best_params_)
-    print("Best mean CV MAE:", -tree_grid_search.best_score_)
+    print(
+        "Best parameters:",
+        grid_search.best_params_,
+    )
+    print(
+        "Best mean CV MAE:",
+        -grid_search.best_score_,
+    )
+
+    return grid_search
+
+
+# ---------------------------------------------------------------------------
+# Main experiment
+# ---------------------------------------------------------------------------
+
+
+def main():
+    X_train, X_test, y_train, y_test = load_and_split_data()
+
+    print("Dataset split")
+    print(f"Training samples: {len(X_train)}")
+    print(f"Test samples: {len(X_test)}")
+    print(f"Training targets: {len(y_train)}")
+    print(f"Test targets: {len(y_test)}")
+
+    # Compare professional regression models using only the training set.
+    evaluate_linear_regression(
+        X_train,
+        y_train,
+    )
+
+    evaluate_ridge_regression(
+        X_train,
+        y_train,
+    )
+
+    # Keep this manual experiment because it documents the learning process.
+    run_tree_split_experiment(
+        X_train,
+        y_train,
+    )
+
+    # Systematically search combinations of tree hyperparameters.
+    run_tree_grid_search(
+        X_train,
+        y_train,
+    )
 
 
 if __name__ == "__main__":
