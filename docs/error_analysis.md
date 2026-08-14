@@ -1,10 +1,10 @@
-# Ridge Regression Error Analysis
+# Ridge Regression Error Analysis and Feature Experiment
 
 ## Purpose
 
-This document records the error analysis performed for the selected rental-price model: Ridge Regression with `alpha=10.0`. It documents the model's finalized results before the planned feature-expansion experiment, the investigation and exclusion of one validated target-data error, performance by neighbourhood, learned feature effects, the residual-plot findings, and the model's current limitations.
+This document records the error analysis performed for the rental-price model and the subsequent, controlled feature-expansion experiment. It documents the baseline Ridge results, the investigation and exclusion of one validated target-data error, performance by neighbourhood, learned feature effects, residual-plot findings, the experiment protocol, and the final model decision.
 
-All numerical results below come from locally executed project outputs collected.
+All numerical results below come from locally executed project outputs collected during Step 12.
 
 ## Model and evaluation setup
 
@@ -219,7 +219,7 @@ The plot supports the conclusion that premium and unusual listings depend on cha
 
 ## Current limitations
 
-1. **Limited property detail.** The model uses only living space, room count, flat type, and neighbourhood. It does not yet model condition, interior quality, refurbishment, building age, floor, amenities, or energy characteristics.
+1. **Remaining limited property detail.** The selected enhanced model includes condition, interior quality, construction year, floor, and several amenities, but it does not include refurbishment year, energy characteristics, precise location, furnishing detail, or other luxury-specific information.
 2. **Reduced reliability for premium listings.** The residual variance increases at higher predicted rents, and several of the largest errors occur in premium neighbourhoods or unusual properties.
 3. **Linear and additive structure.** Ridge models additive linear effects after preprocessing. It may miss interactions and nonlinear relationships, such as neighbourhood changing the value of additional living space.
 4. **Categorical and missing-data interpretation.** One-hot coefficients describe associations in the fitted encoding. They do not establish causal effects, and missingness can act as a proxy for unobserved listing characteristics.
@@ -229,23 +229,53 @@ The plot supports the conclusion that premium and unusual listings depend on cha
 8. **Scope and generalization.** Results apply to the Munich listings represented in this dataset. They should not be assumed to transfer directly to another city, time period, or changing rental market.
 9. **Listing prices are not final transaction prices.** The target represents recorded listing data and may include further inconsistencies not detected by the current rules.
 
-## Planned model-improvement experiment
+## Controlled model-improvement experiment
 
-The error analysis suggests a bounded follow-up experiment using additional features that are available at prediction time and may explain premium-property variation:
+### Hypothesis and scope
 
-- property quality: `interiorQual`, `condition`;
-- age and refurbishment: `yearConstructed`, `lastRefurbish`;
-- amenities: `balcony`, `garden`, `lift`, `hasKitchen`, `cellar`;
-- building position: `floor`.
+The residual plot and largest-error analysis suggested that property quality, condition, age, floor, and amenities could explain some rent variation that the baseline model could not observe, especially among expensive listings. A single, pre-defined feature-expansion experiment was run rather than repeatedly changing the model until the test result improved.
 
-The experiment must be defined before inspecting its results, use the same training/test protocol, and compare candidate settings using cross-validation on the training data. Only the selected candidate should receive a final held-out test evaluation. Improvement should be judged using overall MAE and RMSE together with the high-rent residual spread and category-level errors.
+The baseline remained Ridge Regression with `alpha=10.0` and these inputs:
 
-`totalRent`, `serviceCharge`, and `heatingCosts` must remain excluded from predictors because they are directly tied to `baseRent` and would introduce target leakage or an unrealistic prediction dependency.
+- numerical: `livingSpace`, `noRooms`;
+- categorical: `typeOfFlat`, `regio3`.
 
-This experiment has **not yet been run**. Its result must be documented whether it improves the model or not.
+The enhanced Ridge candidate added:
+
+- numerical: `yearConstructed`, `floor`;
+- categorical: `interiorQual`, `condition`, `balcony`, `garden`, `lift`, `hasKitchen`, and `cellar`.
+
+`lastRefurbish` was deliberately excluded because 66.7% of its values were missing. The included missing rates were manageable with the pipeline's existing imputation: 36.2% for `interiorQual`, 27.5% for `condition`, 17.1% for `yearConstructed`, and 14.4% for `floor`. The Boolean amenity fields had no missing values.
+
+`totalRent`, `serviceCharge`, and `heatingCosts` remained excluded because they are directly tied to `baseRent` and would introduce target leakage or an unrealistic prediction dependency.
+
+### Fair comparison protocol
+
+Both models used exactly the same cleaned Munich listings, including the exclusion of index `213625`, and the same fixed 80/20 split (`random_state=42`). No rows were added, removed, or moved between the baseline and enhanced comparison; only the input columns differed.
+
+The baseline used its previously selected `alpha=10.0`. For the enhanced candidate, `alpha` values `[0.01, 0.1, 1.0, 10.0, 100.0]` were compared using five-fold cross-validation on the 3,504 training listings only. `alpha=10.0` gave the lowest mean CV MAE, €292.45. The selected enhanced pipeline was then evaluated on the 876-listing held-out test set.
+
+### Results
+
+| Metric | Baseline Ridge | Enhanced Ridge | Change |
+|---|---:|---:|---:|
+| Test MAE | €308.84 | €289.13 | -€19.71 (-6.4%) |
+| Test RMSE | €479.18 | €456.29 | -€22.89 (-4.8%) |
+| Test R² | 0.764 | 0.786 | +0.022 |
+| High-rent MAE | €739.74 | €702.53 | -€37.21 (-5.0%) |
+
+High-rent MAE was calculated on the same test listings for both models: the top 10% by actual held-out rent, defined as `baseRent >= €2,850`. It directly tests whether the added property detail improved the expensive-listing weakness identified in the residual plot.
+
+The enhanced model improved every reported test metric. It should therefore replace the baseline Ridge model for this project. The high-rent MAE also decreased, which supports the original hypothesis, although expensive listings remain substantially harder to predict than the overall test set.
+
+### Cross-validation warning
+
+During cross-validation, scikit-learn warned that an unknown category appeared in categorical column `[3]`, which corresponds to `condition` within the enhanced categorical feature list. This happens because rare condition values may occur in a validation fold but not in that fold's training data.
+
+The pipeline uses `OneHotEncoder(handle_unknown="ignore")`, so it does not fail or learn from the validation fold. The unseen value is safely encoded as zeros. This is leakage-safe and expected with rare categories, but it is a limitation: the model has little evidence for predicting listings with such rare conditions.
 
 ## Conclusion
 
-The finalized Ridge model performs substantially better than the mean baseline and achieves a held-out MAE of €308.84. Error analysis revealed one uniquely validated target-data error, which was conservatively excluded before retraining. After exclusion, the model's remaining weaknesses are concentrated in expensive, unusual, and some premium-neighbourhood listings.
+The baseline Ridge model performed substantially better than the mean baseline, and error analysis revealed one uniquely validated target-data error that was conservatively excluded before retraining. After exclusion, the remaining weaknesses were concentrated in expensive, unusual, and some premium-neighbourhood listings.
 
-The neighbourhood analysis, coefficients, and residual plot all point to the same limitation: the current feature set captures size and broad location effects but does not fully represent property quality and luxury-specific characteristics. The planned feature-expansion experiment will test that hypothesis in a controlled and reproducible way.
+The controlled feature-expansion experiment confirmed the error-analysis hypothesis. Adding quality, condition, age, floor, and amenity information reduced test MAE from €308.84 to €289.13 and also reduced high-rent MAE. The selected project model is therefore the enhanced Ridge pipeline with `alpha=10.0`, while the remaining large luxury-listing errors and rare-category warnings remain documented limitations.

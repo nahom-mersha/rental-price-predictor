@@ -35,15 +35,20 @@ TARGET = "baseRent"
 # ---------------------------------------------------------------------------
 
 
-def load_and_split_data():
+def load_and_split_data(
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
+):
     """Load Munich rental data, clean it, and create train/test sets."""
     raw_df = pd.read_csv("data/raw/immo_data.csv")
+
+    features = numerical_features + categorical_features
 
     # Keep Munich city listings only.
     munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 
     # Keep only the features and target used by the professional models.
-    model_df = munich_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES + [TARGET]].copy()
+    model_df = munich_df[features + [TARGET]].copy()
 
     # Remove obvious data-quality problems.
     model_df = model_df.loc[
@@ -55,7 +60,7 @@ def load_and_split_data():
     # implies a likely base rent of €2,100.
     model_df = model_df.drop(index=213625)
 
-    X = model_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES]
+    X = model_df[features]
 
     y = model_df[TARGET]
 
@@ -72,7 +77,10 @@ def load_and_split_data():
 # ---------------------------------------------------------------------------
 
 
-def build_preprocessor():
+def build_preprocessor(
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
+):
     """Create leakage-safe preprocessing for numerical and categorical data."""
     numerical_pipeline = Pipeline(
         steps=[
@@ -111,24 +119,31 @@ def build_preprocessor():
             (
                 "numerical",
                 numerical_pipeline,
-                NUMERICAL_FEATURES,
+                numerical_features,
             ),
             (
                 "categorical",
                 categorical_pipeline,
-                CATEGORICAL_FEATURES,
+                categorical_features,
             ),
         ]
     )
 
 
-def build_model_pipeline(model):
+def build_model_pipeline(
+    model,
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
+):
     """Combine preprocessing and a regression model."""
     return Pipeline(
         steps=[
             (
                 "preprocessing",
-                build_preprocessor(),
+                build_preprocessor(
+                    numerical_features,
+                    categorical_features,
+                ),
             ),
             (
                 "model",
@@ -147,9 +162,15 @@ def cross_validated_mae(
     model,
     X_train,
     y_train,
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
 ):
     """Evaluate a model using leakage-safe cross-validation."""
-    pipeline = build_model_pipeline(model)
+    pipeline = build_model_pipeline(
+        model,
+        numerical_features,
+        categorical_features,
+    )
 
     negative_mae_scores = cross_val_score(
         pipeline,
@@ -271,10 +292,15 @@ def evaluate_on_test_set(
     X_test,
     y_train,
     y_test,
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
 ):
     """Fit a selected model and evaluate it on the held-out test set."""
-    pipeline = build_model_pipeline(model)
-
+    pipeline = build_model_pipeline(
+        model,
+        numerical_features,
+        categorical_features,
+    )
     pipeline.fit(
         X_train,
         y_train,
