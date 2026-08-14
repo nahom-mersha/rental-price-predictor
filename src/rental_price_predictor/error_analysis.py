@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.linear_model import Ridge
 
 from rental_price_predictor.sklearn_models import (
@@ -55,6 +56,24 @@ def main():
 
     print("\nNeighbourhood MAE (at least 10 test listings):")
     print(neighbourhood_errors.to_string())
+    preprocessor = ridge.named_steps["preprocessing"]
+    model = ridge.named_steps["model"]
+
+    feature_names = preprocessor.get_feature_names_out()
+
+    coefficients_df = pd.DataFrame(
+        {
+            "feature": feature_names,
+            "coefficient": model.coef_,
+            "absolute_coefficient": abs(model.coef_),
+        }
+    ).sort_values(
+        "absolute_coefficient",
+        ascending=False,
+    )
+
+    print("\nRidge feature effects:")
+    print(coefficients_df.to_string(index=False))
 
 
 if __name__ == "__main__":
