@@ -6,3 +6,4 @@ __pycache__/
 data/raw/immo_data.csv
 # VS Code temporary runner files
 tempCodeRunnerFile.py
+data/processed/rentals.db
