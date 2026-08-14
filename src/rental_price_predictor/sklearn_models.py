@@ -50,6 +50,11 @@ def load_and_split_data():
         (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
     ].copy()
 
+    # Exclude one validated target-data error:
+    # baseRent is €20,100, but totalRent - serviceCharge - heatingCosts
+    # implies a likely base rent of €2,100.
+    model_df = model_df.drop(index=213625)
+
     X = model_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES]
 
     y = model_df[TARGET]
