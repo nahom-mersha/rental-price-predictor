@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.linear_model import Ridge
 
@@ -74,6 +75,26 @@ def main():
 
     print("\nRidge feature effects:")
     print(coefficients_df.to_string(index=False))
+
+    plt.figure(figsize=(8, 5))
+
+    plt.scatter(
+        predictions,
+        residuals,
+        alpha=0.6,
+    )
+
+    plt.axhline(
+        y=0,
+        color="red",
+        linestyle="--",
+    )
+
+    plt.xlabel("Predicted monthly rent (€)")
+    plt.ylabel("Residual (€)")
+    plt.title("Ridge residuals vs. predicted rent")
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
