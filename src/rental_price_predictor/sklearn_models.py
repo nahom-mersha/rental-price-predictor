@@ -28,18 +28,34 @@ CATEGORICAL_FEATURES = [
 ]
 
 TARGET = "baseRent"
+ENHANCED_NUMERICAL_FEATURES = [
+    "livingSpace",
+    "noRooms",
+    "yearConstructed",
+    "floor",
+]
+
+ENHANCED_CATEGORICAL_FEATURES = [
+    "typeOfFlat",
+    "regio3",
+    "interiorQual",
+    "condition",
+    "balcony",
+    "garden",
+    "lift",
+    "hasKitchen",
+    "cellar",
+]
 
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
-
-
-def load_and_split_data(
+def load_clean_model_data(
     numerical_features=NUMERICAL_FEATURES,
     categorical_features=CATEGORICAL_FEATURES,
 ):
-    """Load Munich rental data, clean it, and create train/test sets."""
+    """Load and clean Munich rental data for model training."""
     raw_df = pd.read_csv("data/raw/immo_data.csv")
 
     features = numerical_features + categorical_features
@@ -47,7 +63,7 @@ def load_and_split_data(
     # Keep Munich city listings only.
     munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 
-    # Keep only the features and target used by the professional models.
+    # Keep the requested features and target.
     model_df = munich_df[features + [TARGET]].copy()
 
     # Remove obvious data-quality problems.
@@ -55,14 +71,24 @@ def load_and_split_data(
         (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
     ].copy()
 
-    # Exclude one validated target-data error:
-    # baseRent is €20,100, but totalRent - serviceCharge - heatingCosts
-    # implies a likely base rent of €2,100.
+    # Exclude the validated incorrect target row.
     model_df = model_df.drop(index=213625)
 
     X = model_df[features]
-
     y = model_df[TARGET]
+
+    return X, y
+
+
+def load_and_split_data(
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES,
+):
+    """Load cleaned data and create reproducible train/test sets."""
+    X, y = load_clean_model_data(
+        numerical_features,
+        categorical_features,
+    )
 
     return train_test_split(
         X,
@@ -134,7 +160,7 @@ def build_model_pipeline(
     model,
     numerical_features=NUMERICAL_FEATURES,
     categorical_features=CATEGORICAL_FEATURES,
-):
+) -> Pipeline:
     """Combine preprocessing and a regression model."""
     return Pipeline(
         steps=[

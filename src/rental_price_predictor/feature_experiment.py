@@ -7,6 +7,8 @@ from sklearn.metrics import (
 )
 
 from rental_price_predictor.sklearn_models import (
+    ENHANCED_CATEGORICAL_FEATURES,
+    ENHANCED_NUMERICAL_FEATURES,
     build_model_pipeline,
     cross_validated_mae,
     load_and_split_data,
@@ -20,25 +22,6 @@ BASE_NUMERICAL_FEATURES = [
 BASE_CATEGORICAL_FEATURES = [
     "typeOfFlat",
     "regio3",
-]
-
-ENHANCED_NUMERICAL_FEATURES = [
-    "livingSpace",
-    "noRooms",
-    "yearConstructed",
-    "floor",
-]
-
-ENHANCED_CATEGORICAL_FEATURES = [
-    "typeOfFlat",
-    "regio3",
-    "interiorQual",
-    "condition",
-    "balcony",
-    "garden",
-    "lift",
-    "hasKitchen",
-    "cellar",
 ]
 
 ALPHA_VALUES = [
