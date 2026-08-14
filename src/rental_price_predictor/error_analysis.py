@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.linear_model import Ridge
@@ -94,6 +96,19 @@ def main():
     plt.ylabel("Residual (€)")
     plt.title("Ridge residuals vs. predicted rent")
     plt.tight_layout()
+    figures_directory = Path("reports/figures")
+    figures_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    plt.tight_layout()
+
+    plt.savefig(
+        figures_directory / "ridge_residuals_vs_predicted_rent.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
     plt.show()
 
 
