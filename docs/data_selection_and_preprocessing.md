@@ -36,9 +36,7 @@ The CSV is not committed to Git because of its size. The source and download loc
 The project focuses on Munich city. Records were selected using the exact `regio2` label:
 
 ```python
-munich_df = raw_df.loc[
-    raw_df["regio2"].eq("München")
-].copy()
+munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 ```
 
 This produced:
@@ -145,8 +143,7 @@ Two narrow rules were applied to the Munich modelling table:
 
 ```python
 model_df = model_df.loc[
-    (model_df["baseRent"] >= 100)
-    & (model_df["livingSpace"] <= 500)
+    (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
 ].copy()
 ```
 
@@ -203,9 +200,7 @@ The row `213625` issue was discovered by inspecting an original test error. Resu
 After selection and cleaning, inputs and target were separated explicitly:
 
 ```python
-X = model_df[
-    NUMERICAL_FEATURES + CATEGORICAL_FEATURES
-]
+X = model_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES]
 
 y = model_df[TARGET]
 ```
@@ -264,9 +259,7 @@ The means and standard deviations were calculated from `X_train` only. The same 
 An intercept column of ones was added after scaling:
 
 ```python
-X_train_design = np.column_stack(
-    [np.ones(X_train_scaled.shape[0]), X_train_scaled]
-)
+X_train_design = np.column_stack([np.ones(X_train_scaled.shape[0]), X_train_scaled])
 ```
 
 This allowed the model to learn a non-zero bias term. With centered numerical features, the learned intercept was close to the mean training rent.
@@ -353,19 +346,12 @@ The expected finalized data-loading sequence is:
 ```python
 raw_df = pd.read_csv("data/raw/immo_data.csv")
 
-munich_df = raw_df.loc[
-    raw_df["regio2"].eq("München")
-].copy()
+munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 
-model_df = munich_df[
-    NUMERICAL_FEATURES
-    + CATEGORICAL_FEATURES
-    + [TARGET]
-].copy()
+model_df = munich_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES + [TARGET]].copy()
 
 model_df = model_df.loc[
-    (model_df["baseRent"] >= 100)
-    & (model_df["livingSpace"] <= 500)
+    (model_df["baseRent"] >= 100) & (model_df["livingSpace"] <= 500)
 ].copy()
 
 model_df = model_df.drop(index=213625)

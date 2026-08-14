@@ -21,9 +21,7 @@ The dataset includes rental prices, living space, room counts, regional labels, 
 This project is limited to **Munich city** using the exact regional label:
 
 ```python
-munich_df = raw_df.loc[
-    raw_df["regio2"].eq("München")
-].copy()
+munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
 ```
 
 This selection produces **4,383 Munich listings across 42 neighbourhoods**.
