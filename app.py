@@ -114,3 +114,11 @@ interior_quality = (
     None if interior_quality_choice == NOT_SPECIFIED else interior_quality_choice
 )
 condition = None if condition_choice == NOT_SPECIFIED else condition_choice
+
+st.subheader("Amenities")
+
+balcony = st.checkbox("Balcony")
+garden = st.checkbox("Garden")
+lift = st.checkbox("Lift")
+has_kitchen = st.checkbox("Fitted kitchen")
+cellar = st.checkbox("Cellar")
