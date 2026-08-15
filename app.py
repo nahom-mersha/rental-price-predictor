@@ -23,7 +23,10 @@ st.set_page_config(
 
 st.title("🏠 Munich Rent Predictor")
 st.write("Estimate the monthly cold rent for an apartment in Munich.")
-
+st.caption(
+    "This educational model estimates monthly cold rent from historical "
+    "Munich rental listings. It is not a professional valuation."
+)
 try:
     model = load_model()
 except FileNotFoundError as error:
@@ -116,14 +119,29 @@ interior_quality = (
 )
 condition = None if condition_choice == NOT_SPECIFIED else condition_choice
 
+
 st.subheader("Amenities")
 
-balcony = st.checkbox("Balcony")
-garden = st.checkbox("Garden")
-lift = st.checkbox("Lift")
-has_kitchen = st.checkbox("Fitted kitchen")
-cellar = st.checkbox("Cellar")
+amenity_columns = st.columns(5)
 
+with amenity_columns[0]:
+    balcony = st.checkbox("Balcony")
+
+with amenity_columns[1]:
+    garden = st.checkbox("Garden")
+
+with amenity_columns[2]:
+    lift = st.checkbox("Lift")
+
+with amenity_columns[3]:
+    has_kitchen = st.checkbox("Fitted kitchen")
+
+with amenity_columns[4]:
+    cellar = st.checkbox("Cellar")
+st.caption(
+    "Tick an amenity if it is present; leave it unchecked only if it is absent. "
+    "The model cannot represent an unknown amenity."
+)
 if st.button("Predict monthly rent", type="primary"):
     try:
         prediction = predict_rent(
@@ -146,3 +164,8 @@ if st.button("Predict monthly rent", type="primary"):
         st.error(str(error))
     else:
         st.success(f"Estimated monthly cold rent: €{prediction:,.2f}")
+st.caption(
+    "On held-out test data, the enhanced model had a typical absolute "
+    "error of about €289. Predictions may be less reliable for unusual "
+    "or very expensive apartments."
+)
