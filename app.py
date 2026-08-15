@@ -47,8 +47,13 @@ encoder = (
     .named_steps["one_hot_encoding"]
 )
 
-neighbourhood_index = categorical_features.index("regio3")
-neighbourhoods = sorted(encoder.categories_[neighbourhood_index].tolist())
+
+def category_options(feature_name: str) -> list[str]:
+    """Return categories learned by the model for one feature."""
+    feature_index = categorical_features.index(feature_name)
+
+    return sorted(encoder.categories_[feature_index].tolist())
+
 
 st.subheader("Apartment details")
 
@@ -69,5 +74,43 @@ no_rooms = st.number_input(
 
 neighbourhood = st.selectbox(
     "Neighbourhood",
-    options=neighbourhoods,
+    options=category_options("regio3"),
 )
+
+
+NOT_SPECIFIED = "Not specified"
+
+with st.expander("Optional apartment details"):
+    flat_type_choice = st.selectbox(
+        "Flat type",
+        options=[NOT_SPECIFIED, *category_options("typeOfFlat")],
+    )
+    interior_quality_choice = st.selectbox(
+        "Interior quality",
+        options=[NOT_SPECIFIED, *category_options("interiorQual")],
+    )
+    condition_choice = st.selectbox(
+        "Property condition",
+        options=[NOT_SPECIFIED, *category_options("condition")],
+    )
+
+    year_constructed = st.number_input(
+        "Construction year",
+        min_value=1800,
+        max_value=2026,
+        value=None,
+        step=1,
+    )
+    floor = st.number_input(
+        "Floor",
+        min_value=-5.0,
+        max_value=100.0,
+        value=None,
+        step=1.0,
+    )
+
+flat_type = None if flat_type_choice == NOT_SPECIFIED else flat_type_choice
+interior_quality = (
+    None if interior_quality_choice == NOT_SPECIFIED else interior_quality_choice
+)
+condition = None if condition_choice == NOT_SPECIFIED else condition_choice
