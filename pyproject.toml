@@ -12,6 +12,7 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "joblib",
+    "streamlit",
 ]
 
 [project.optional-dependencies]
