@@ -1,6 +1,7 @@
 import joblib
 import streamlit as st
 
+from rental_price_predictor.prediction import predict_rent
 from rental_price_predictor.train_final_model import MODEL_PATH
 
 
@@ -122,3 +123,26 @@ garden = st.checkbox("Garden")
 lift = st.checkbox("Lift")
 has_kitchen = st.checkbox("Fitted kitchen")
 cellar = st.checkbox("Cellar")
+
+if st.button("Predict monthly rent", type="primary"):
+    try:
+        prediction = predict_rent(
+            model,
+            living_space=living_space,
+            no_rooms=no_rooms,
+            neighbourhood=neighbourhood,
+            balcony=balcony,
+            garden=garden,
+            lift=lift,
+            has_kitchen=has_kitchen,
+            cellar=cellar,
+            flat_type=flat_type,
+            year_constructed=year_constructed,
+            floor=floor,
+            interior_quality=interior_quality,
+            condition=condition,
+        )
+    except ValueError as error:
+        st.error(str(error))
+    else:
+        st.success(f"Estimated monthly cold rent: €{prediction:,.2f}")
