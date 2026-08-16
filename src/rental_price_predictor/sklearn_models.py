@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -8,9 +10,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 
-# ---------------------------------------------------------------------------
+logger = logging.getLogger(__name__)
+
+
 # Experiment configuration
-# ---------------------------------------------------------------------------
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
@@ -28,6 +31,7 @@ CATEGORICAL_FEATURES = [
 ]
 
 TARGET = "baseRent"
+
 ENHANCED_NUMERICAL_FEATURES = [
     "livingSpace",
     "noRooms",
@@ -48,20 +52,24 @@ ENHANCED_CATEGORICAL_FEATURES = [
 ]
 
 
-# ---------------------------------------------------------------------------
 # Data
-# ---------------------------------------------------------------------------
+
+
 def load_clean_model_data(
     numerical_features=NUMERICAL_FEATURES,
     categorical_features=CATEGORICAL_FEATURES,
 ):
     """Load and clean Munich rental data for model training."""
+    logger.info("Loading raw rental data.")
+
     raw_df = pd.read_csv("data/raw/immo_data.csv")
+    logger.info("Loaded %d raw listings.", len(raw_df))
 
     features = numerical_features + categorical_features
 
     # Keep Munich city listings only.
     munich_df = raw_df.loc[raw_df["regio2"].eq("München")].copy()
+    logger.info("Kept %d Munich listings.", len(munich_df))
 
     # Keep the requested features and target.
     model_df = munich_df[features + [TARGET]].copy()
@@ -73,6 +81,11 @@ def load_clean_model_data(
 
     # Exclude the validated incorrect target row.
     model_df = model_df.drop(index=213625)
+
+    logger.info(
+        "Prepared %d cleaned listings for modelling.",
+        len(model_df),
+    )
 
     X = model_df[features]
     y = model_df[TARGET]
@@ -98,9 +111,7 @@ def load_and_split_data(
     )
 
 
-# ---------------------------------------------------------------------------
 # Preprocessing
-# ---------------------------------------------------------------------------
 
 
 def build_preprocessor(
@@ -179,9 +190,7 @@ def build_model_pipeline(
     )
 
 
-# ---------------------------------------------------------------------------
 # Cross-validation
-# ---------------------------------------------------------------------------
 
 
 def cross_validated_mae(
@@ -206,14 +215,12 @@ def cross_validated_mae(
         scoring=CV_SCORING,
     )
 
-    # scikit-learn returns negative MAE because larger scores are treated
+    # Scikit-learn returns negative MAE because larger scores are treated
     # as better. Convert the values back to normal positive MAE.
     return -negative_mae_scores
 
 
-# ---------------------------------------------------------------------------
 # Model selection
-# ---------------------------------------------------------------------------
 
 
 def evaluate_linear_regression(
@@ -306,9 +313,7 @@ def run_tree_grid_search(
     return grid_search
 
 
-# ---------------------------------------------------------------------------
 # Final test evaluation
-# ---------------------------------------------------------------------------
 
 
 def evaluate_on_test_set(
@@ -327,6 +332,7 @@ def evaluate_on_test_set(
         numerical_features,
         categorical_features,
     )
+
     pipeline.fit(
         X_train,
         y_train,
@@ -395,9 +401,7 @@ def evaluate_tree_on_test_set(
     print(f"R²: {r2:.3f}")
 
 
-# ---------------------------------------------------------------------------
 # Main experiment
-# ---------------------------------------------------------------------------
 
 
 def main():
@@ -407,12 +411,8 @@ def main():
     print(f"Training samples: {len(X_train)}")
     print(f"Test samples: {len(X_test)}")
 
-    # -----------------------------------------------------------------------
     # Mean baseline
-    # -----------------------------------------------------------------------
-
     baseline_prediction = y_train.mean()
-
     baseline_predictions = [baseline_prediction] * len(y_test)
 
     baseline_mae = mean_absolute_error(
@@ -438,10 +438,7 @@ def main():
     print(f"RMSE: {baseline_rmse:.2f}")
     print(f"R²: {baseline_r2:.3f}")
 
-    # -----------------------------------------------------------------------
     # Model selection using training data only
-    # -----------------------------------------------------------------------
-
     evaluate_linear_regression(
         X_train,
         y_train,
@@ -457,10 +454,7 @@ def main():
         y_train,
     )
 
-    # -----------------------------------------------------------------------
     # Final evaluation on the held-out test set
-    # -----------------------------------------------------------------------
-
     evaluate_on_test_set(
         "Linear Regression",
         LinearRegression(),

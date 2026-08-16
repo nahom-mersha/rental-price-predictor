@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import joblib
@@ -11,6 +12,7 @@ from rental_price_predictor.sklearn_models import (
     load_clean_model_data,
 )
 
+logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 MODEL_PATH = PROJECT_ROOT / "models" / "enhanced_ridge.joblib"
@@ -36,6 +38,12 @@ def train_final_model() -> Pipeline:
 
 def main() -> None:
     """Train and save the final deployable model."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+    logger.info("Starting final model training.")
+
     model = train_final_model()
 
     MODEL_PATH.parent.mkdir(
@@ -44,8 +52,7 @@ def main() -> None:
     )
 
     joblib.dump(model, MODEL_PATH)
-
-    print(f"Saved trained model to: {MODEL_PATH}")
+    logger.info("Saved trained model to: %s", MODEL_PATH)
 
 
 if __name__ == "__main__":
