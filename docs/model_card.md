@@ -83,3 +83,4 @@ Users should compare predictions with recent local listings and seek professiona
 * [Model selection and evaluation](model_selection.md)
 * [Error analysis](error_analysis.md)
 * [Public application](https://munich-rent-predictor.streamlit.app/)
+* [Project learning notes](https://github.com/nahom-mersha/ai-notes/tree/main/Project%202%20-%20Rental%20Price%20Predictor)

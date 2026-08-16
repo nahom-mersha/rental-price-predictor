@@ -317,7 +317,8 @@ rental-price-predictor/
 
 ## Learning Notes
 
-Additional learning notes are available in my [AI Notes repository](https://github.com/nahom-mersha/ai-notes).
+My concise learning notes for this project are available in my
+[AI Notes repository](https://github.com/nahom-mersha/ai-notes/tree/main/Project%202%20-%20Rental%20Price%20Predictor).
 
 ## Purpose
 
